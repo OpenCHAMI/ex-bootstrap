@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strings"
 	"time"
 
 	"bootstrap/internal/inventory"
@@ -47,7 +46,7 @@ func UpdateNodes(doc *inventory.FileFormat, subnet string, user, pass string, in
 		}
 
 		// Process each system (e.g., Node0, Node1) found on this BMC
-		for _, sysMacs := range systemMACs {
+		for sysIdx, sysMacs := range systemMACs {
 			if len(sysMacs.MACs) == 0 {
 				fmt.Fprintf(os.Stderr, "WARN: %s %s: no NICs discovered\n", b.Xname, sysMacs.SystemPath)
 				continue
@@ -55,18 +54,11 @@ func UpdateNodes(doc *inventory.FileFormat, subnet string, user, pass string, in
 
 			// Use only the first bootable MAC for PXE booting
 			mac := sysMacs.MACs[0]
-			nodeX := xname.BMCXnameToNode(b.Xname)
 
-			// If there are multiple systems, append the system identifier
-			// Extract system name from path (e.g., /redfish/v1/Systems/Node0 -> Node0)
-			if len(systemMACs) > 1 {
-				parts := strings.Split(sysMacs.SystemPath, "/")
-				if len(parts) > 0 {
-					sysName := parts[len(parts)-1]
-					// Append system name to xname (e.g., x1000c0s0b0n0 -> x1000c0s0b0n0-Node0)
-					nodeX = fmt.Sprintf("%s-%s", nodeX, sysName)
-				}
-			}
+			// Generate node xname with proper node number
+			// For single-system BMCs, use node 0
+			// For multi-system BMCs, use the system index as node number
+			nodeX := xname.BMCXnameToNodeN(b.Xname, sysIdx)
 
 			existing := findByXname(doc.Nodes, nodeX)
 			ipStr := ""
