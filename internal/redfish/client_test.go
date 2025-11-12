@@ -332,36 +332,36 @@ func TestDiscoverAllBootableMACs_MultipleSystems(t *testing.T) {
 		// Simulate BMC with multiple systems (Node0, Node1)
 		switch r.URL.Path {
 		case "/redfish/v1/Systems":
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"Members":[
 					{"@odata.id":"/redfish/v1/Systems/Node0"},
 					{"@odata.id":"/redfish/v1/Systems/Node1"}
 				]
 			}`)) //nolint:errcheck
 		case "/redfish/v1/Systems/Node0/EthernetInterfaces":
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"Members":[
 					{"@odata.id":"/redfish/v1/Systems/Node0/EthernetInterfaces/ManagementEthernet"}
 				]
 			}`)) //nolint:errcheck
 		case "/redfish/v1/Systems/Node0/EthernetInterfaces/ManagementEthernet":
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"Id":"ManagementEthernet",
 				"MACAddress":"aa:bb:cc:dd:ee:01"
 			}`)) //nolint:errcheck
 		case "/redfish/v1/Systems/Node1/EthernetInterfaces":
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"Members":[
 					{"@odata.id":"/redfish/v1/Systems/Node1/EthernetInterfaces/ManagementEthernet"}
 				]
 			}`)) //nolint:errcheck
 		case "/redfish/v1/Systems/Node1/EthernetInterfaces/ManagementEthernet":
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"Id":"ManagementEthernet",
 				"MACAddress":"aa:bb:cc:dd:ee:02"
 			}`)) //nolint:errcheck
 		default:
-			w.Write([]byte(`{}`)) //nolint:errcheck
+			_, _ = w.Write([]byte(`{}`)) //nolint:errcheck
 		}
 	}))
 	defer ts.Close()
@@ -458,7 +458,7 @@ func TestDiscoverBootableMACs_WithInvalidMACs(t *testing.T) {
 				"PermanentMACAddress":""
 			}`))
 		case "/redfish/v1/Systems/Node0/EthernetInterfaces/ManagementEthernet":
-			w.Write([]byte(`{
+			_, _ = w.Write([]byte(`{
 				"Id":"ManagementEthernet",
 				"Name":"Management Ethernet",
 				"Description":"Node Maintenance Network",
