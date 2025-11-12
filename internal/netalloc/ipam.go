@@ -37,6 +37,18 @@ func (a *Allocator) Next() (string, error) {
 	return addr.IP.String(), nil
 }
 
+func (a *Allocator) Contains(ip string) bool {
+	_, n, err := net.ParseCIDR(a.prefix.Cidr)
+	if err != nil {
+		return false
+	}
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return false
+	}
+	return n.Contains(parsedIP)
+}
+
 func firstHost(pr *ipam.Prefix) string {
 	_, n, err := net.ParseCIDR(pr.Cidr)
 	if err != nil {

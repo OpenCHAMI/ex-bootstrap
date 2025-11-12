@@ -22,9 +22,9 @@ func UpdateNodes(doc *inventory.FileFormat, bmcSubnet, nodeSubnet string, user, 
 		return nil, fmt.Errorf("node ipam init: %w", err)
 	}
 
-	// Reserve existing node IPs
+	// Reserve existing node IPs that are within the node subnet
 	for _, n := range doc.Nodes {
-		if ip := net.ParseIP(n.IP); ip != nil {
+		if ip := net.ParseIP(n.IP); ip != nil && nodeAlloc.Contains(n.IP) {
 			nodeAlloc.Reserve(ip.String())
 		}
 	}
@@ -38,9 +38,9 @@ func UpdateNodes(doc *inventory.FileFormat, bmcSubnet, nodeSubnet string, user, 
 		if err != nil {
 			return nil, fmt.Errorf("bmc ipam init: %w", err)
 		}
-		// Reserve existing BMC IPs
+		// Reserve existing BMC IPs that are within the BMC subnet
 		for _, b := range doc.BMCs {
-			if ip := net.ParseIP(b.IP); ip != nil {
+			if ip := net.ParseIP(b.IP); ip != nil && bmcAlloc.Contains(b.IP) {
 				bmcAlloc.Reserve(ip.String())
 			}
 		}
@@ -82,7 +82,8 @@ func UpdateNodes(doc *inventory.FileFormat, bmcSubnet, nodeSubnet string, user, 
 
 			existing := findByXname(doc.Nodes, nodeX)
 			ipStr := ""
-			if existing != nil && net.ParseIP(existing.IP) != nil {
+			// Only reuse existing IP if it's valid and within the node subnet
+			if existing != nil && net.ParseIP(existing.IP) != nil && nodeAlloc.Contains(existing.IP) {
 				ipStr = existing.IP
 				nodeAlloc.Reserve(ipStr)
 			} else {
