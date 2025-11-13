@@ -10,6 +10,13 @@ A small CLI tool to discover bootable node NICs via BMC Redfish and produce a YA
 
 This repository contains a lightweight Go implementation originally based on small scripts for creating an initial BMC inventory and then discovering node NICs through Redfish.
 
+[![REUSE status](https://api.reuse.software/badge/github.com/openchami/ochami-ex-bootstrap)](https://api.reuse.software/info/github.com/openchami/ochami-ex-bootstrap)[![golangci-lint](https://github.com/openchami/ochami-ex-bootstrap/actions/workflows/lint.yaml/badge.svg)](https://github.com/openchami/ochami-ex-bootstrap/actions/workflows/lint.yaml)
+[![Build](https://github.com/openchami/ochami-ex-bootstrap/actions/workflows/release.yaml/badge.svg)](https://github.com/openchami/ochami-ex-bootstrap/actions/workflows/release.yaml)
+[![Release](https://img.shields.io/github/v/release/openchami/ochami-ex-bootstrap?sort=semver)](https://github.com/openchami/ochami-ex-bootstrap/releases)
+[![Go Reference](https://pkg.go.dev/badge/github.com/openchami/ochami-ex-bootstrap.svg)](https://pkg.go.dev/github.com/openchami/ochami-ex-bootstrap)
+[![Go Report Card](https://goreportcard.com/badge/github.com/openchami/ochami-ex-bootstrap)](https://goreportcard.com/report/github.com/openchami/ochami-ex-bootstrap)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/OpenCHAMI/ochami-ex-bootstrap/badge)](https://securityscorecards.dev/viewer/?uri=github.com/OpenCHAMI/ochami-ex-bootstrap)
+
 ## Features
 
 - Generate an initial `inventory.yaml` with a `bmcs` list (xname, MAC, IP) using `--init-bmcs`.
