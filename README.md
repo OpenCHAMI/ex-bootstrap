@@ -141,6 +141,22 @@ export REDFISH_PASSWORD=secret
   --targets /redfish/v1/UpdateService/FirmwareInventory/Node0.BIOS,/redfish/v1/UpdateService/FirmwareInventory/Node1.BIOS \
   --image-uri http://10.0.0.1/images/bios.cap \
   --protocol HTTP
+
+# Update BMC firmware on many hosts in parallel (batch size of 10)
+./ochami_bootstrap firmware \
+  --file examples/inventory.yaml \
+  --type bmc \
+  --image-uri http://10.0.0.1/images/bmc-firmware.bin \
+  --protocol HTTP \
+  --batch-size 10
+
+# Skip update if already at expected version
+./ochami_bootstrap firmware \
+  --file examples/inventory.yaml \
+  --type bmc \
+  --image-uri http://10.0.0.1/images/bmc-firmware.bin \
+  --expected-version "nc.1.9.8" \
+  --protocol HTTP
 ```
 
 Notes:
@@ -150,6 +166,9 @@ Notes:
   - `bios`: uses two targets (`Node0.BIOS`, `Node1.BIOS`) by default; use `--targets` if your platform differs.
 - You can provide `--hosts` (comma-separated hostnames/IPs) to override reading from `--file`.
 - `--insecure` allows skipping TLS verification for BMC HTTPS endpoints.
+- `--batch-size` enables parallel firmware updates. Default is 0 (serial). Set to number of concurrent updates desired (e.g., 10).
+- `--expected-version` checks current firmware version before updating. Skips update if already at expected version.
+- `--force` overrides version checking and forces the update even if already at expected version.
 
 ## Debugging and dry runs
 

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"bootstrap/internal/inventory"
@@ -31,6 +32,7 @@ var (
 	fwDryRun          bool
 	fwForce           bool
 	fwExpectedVersion string
+	fwBatchSize       int
 )
 
 // defaultTargets returns target list for shorthand types.
@@ -106,41 +108,98 @@ var firmwareCmd = &cobra.Command{
 		}
 
 		// Apply firmware update to each host
-		for _, host := range hosts {
-			ctx := cmd.Context()
-			var cancel context.CancelFunc
-			if fwTimeout > 0 {
-				ctx, cancel = context.WithTimeout(ctx, fwTimeout)
-			}
-			if fwDryRun {
-				dryRunMsg := fmt.Sprintf("[dry-run] would POST SimpleUpdate on %s with image=%s targets=%v protocol=%s",
-					host, fwImageURI, fwTargets, fwProtocol)
-				if fwExpectedVersion != "" {
-					dryRunMsg += fmt.Sprintf(" expected-version=%s", fwExpectedVersion)
-					if fwForce {
-						dryRunMsg += " (force=true)"
-					}
+		if fwBatchSize <= 1 {
+			// Serial execution
+			for _, host := range hosts {
+				ctx := cmd.Context()
+				var cancel context.CancelFunc
+				if fwTimeout > 0 {
+					ctx, cancel = context.WithTimeout(ctx, fwTimeout)
 				}
-				fmt.Println(dryRunMsg)
+				if fwDryRun {
+					dryRunMsg := fmt.Sprintf("[dry-run] would POST SimpleUpdate on %s with image=%s targets=%v protocol=%s",
+						host, fwImageURI, fwTargets, fwProtocol)
+					if fwExpectedVersion != "" {
+						dryRunMsg += fmt.Sprintf(" expected-version=%s", fwExpectedVersion)
+						if fwForce {
+							dryRunMsg += " (force=true)"
+						}
+					}
+					fmt.Println(dryRunMsg)
+					if cancel != nil {
+						cancel()
+					}
+					continue
+				}
+				err := redfish.SimpleUpdate(ctx, host, user, pass, fwInsecure, fwTimeout, fwImageURI, fwTargets, fwProtocol, fwExpectedVersion, fwForce)
 				if cancel != nil {
 					cancel()
 				}
-				continue
-			}
-			err := redfish.SimpleUpdate(ctx, host, user, pass, fwInsecure, fwTimeout, fwImageURI, fwTargets, fwProtocol, fwExpectedVersion, fwForce)
-			if cancel != nil {
-				cancel()
-			}
-			if err != nil {
-				// Check if this is a "skipping update" message
-				if strings.Contains(err.Error(), "skipping update") {
-					fmt.Printf("%s: %v\n", host, err)
+				if err != nil {
+					// Check if this is a "skipping update" message
+					if strings.Contains(err.Error(), "skipping update") {
+						fmt.Printf("%s: %v\n", host, err)
+					} else {
+						fmt.Fprintf(os.Stderr, "WARN: %s: firmware update failed: %v\n", host, err)
+					}
 				} else {
-					fmt.Fprintf(os.Stderr, "WARN: %s: firmware update failed: %v\n", host, err)
+					fmt.Printf("Triggered firmware update on %s\n", host)
 				}
-			} else {
-				fmt.Printf("Triggered firmware update on %s\n", host)
 			}
+		} else {
+			// Parallel execution with semaphore to limit concurrency
+			var wg sync.WaitGroup
+			sem := make(chan struct{}, fwBatchSize)
+			var mu sync.Mutex // Protect stdout/stderr writes
+
+			for _, host := range hosts {
+				wg.Add(1)
+				go func(h string) {
+					defer wg.Done()
+					sem <- struct{}{}        // Acquire semaphore
+					defer func() { <-sem }() // Release semaphore
+
+					ctx := cmd.Context()
+					var cancel context.CancelFunc
+					if fwTimeout > 0 {
+						ctx, cancel = context.WithTimeout(ctx, fwTimeout)
+					}
+					if cancel != nil {
+						defer cancel()
+					}
+
+					if fwDryRun {
+						dryRunMsg := fmt.Sprintf("[dry-run] would POST SimpleUpdate on %s with image=%s targets=%v protocol=%s",
+							h, fwImageURI, fwTargets, fwProtocol)
+						if fwExpectedVersion != "" {
+							dryRunMsg += fmt.Sprintf(" expected-version=%s", fwExpectedVersion)
+							if fwForce {
+								dryRunMsg += " (force=true)"
+							}
+						}
+						mu.Lock()
+						fmt.Println(dryRunMsg)
+						mu.Unlock()
+						return
+					}
+
+					err := redfish.SimpleUpdate(ctx, h, user, pass, fwInsecure, fwTimeout, fwImageURI, fwTargets, fwProtocol, fwExpectedVersion, fwForce)
+
+					mu.Lock()
+					if err != nil {
+						// Check if this is a "skipping update" message
+						if strings.Contains(err.Error(), "skipping update") {
+							fmt.Printf("%s: %v\n", h, err)
+						} else {
+							fmt.Fprintf(os.Stderr, "WARN: %s: firmware update failed: %v\n", h, err)
+						}
+					} else {
+						fmt.Printf("Triggered firmware update on %s\n", h)
+					}
+					mu.Unlock()
+				}(host)
+			}
+			wg.Wait()
 		}
 		return nil
 	},
@@ -159,4 +218,5 @@ func init() {
 	firmwareCmd.Flags().BoolVar(&fwDryRun, "dry-run", false, "plan only: print SimpleUpdate actions without posting")
 	firmwareCmd.Flags().BoolVar(&fwForce, "force", false, "force update even if already at expected version")
 	firmwareCmd.Flags().StringVar(&fwExpectedVersion, "expected-version", "", "expected version string; skip update if already at this version (unless --force)")
+	firmwareCmd.Flags().IntVar(&fwBatchSize, "batch-size", 0, "number of concurrent firmware updates (0 or 1 = serial, >1 = parallel)")
 }
