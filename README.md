@@ -170,6 +170,28 @@ Notes:
 - `--expected-version` checks current firmware version before updating. Skips update if already at expected version.
 - `--force` overrides version checking and forces the update even if already at expected version.
 
+### 4) Query firmware status
+
+You can query inventory BMCs to get a quick summary of firmware versions and which hosts are currently updating.
+
+Usage:
+```bash
+export REDFISH_USER=admin
+export REDFISH_PASSWORD=secret
+./ochami_bootstrap firmware status --file examples/inventory.yaml --batch-size 10
+```
+
+What it reports:
+- Total hosts scanned
+- Count of hosts currently "in-progress" (based on UpdateService/FirmwareInventory state and status conditions)
+- Counts grouped by firmware `Version`
+- Per-host errors if any
+
+Notes:
+- Uses the same `--file`, `--hosts`, `--targets`, `--timeout`, `--insecure`, and `--batch-size` flags as the `firmware` subcommand.
+- The detection heuristic inspects `FirmwareInventory` `State` and `Conditions` to infer in-progress updates; it does not query `TaskService` by default.
+- To continuously monitor updates, re-run this command periodically or use a watch/TUI mode (to be added).
+
 ## Debugging and dry runs
 
 - Global `--debug` prints Redfish request methods and paths, plus response status codes, to stderr. No credentials are logged.

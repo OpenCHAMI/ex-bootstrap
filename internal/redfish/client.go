@@ -72,6 +72,41 @@ type rfFirmwareInventory struct {
 	} `json:"Status"`
 }
 
+// FirmwareCondition represents a simplified status condition from firmware inventory.
+type FirmwareCondition struct {
+	Message   string
+	Severity  string
+	Timestamp string
+}
+
+// FirmwareInventory is an exported, simplified representation of firmware inventory information.
+type FirmwareInventory struct {
+	Version    string
+	State      string
+	Conditions []FirmwareCondition
+}
+
+// GetFirmwareInventory fetches FirmwareInventory data for a given host and target path.
+func GetFirmwareInventory(ctx context.Context, host, user, pass string, insecure bool, timeout time.Duration, target string) (FirmwareInventory, error) {
+	c := newClient(host, user, pass, insecure, timeout)
+	var rf rfFirmwareInventory
+	if err := c.get(ctx, target, &rf); err != nil {
+		return FirmwareInventory{}, err
+	}
+	out := FirmwareInventory{
+		Version: rf.Version,
+		State:   rf.Status.State,
+	}
+	for _, cond := range rf.Status.Conditions {
+		out.Conditions = append(out.Conditions, FirmwareCondition{
+			Message:   cond.Message,
+			Severity:  cond.Severity,
+			Timestamp: cond.Timestamp,
+		})
+	}
+	return out, nil
+}
+
 func (c *client) get(ctx context.Context, path string, v any) error {
 	path = c.resolvePath(path)
 	diag.Logf("GET %s", path)

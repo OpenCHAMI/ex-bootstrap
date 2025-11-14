@@ -30,8 +30,8 @@ func mockRedfishFirmwareServer(t *testing.T, responseDelay time.Duration, maxCon
 			defer atomic.AddInt32(currentConcurrent, -1)
 			// Update max if this is higher
 			for {
-				max := atomic.LoadInt32(maxConcurrent)
-				if current <= max || atomic.CompareAndSwapInt32(maxConcurrent, max, current) {
+				prev := atomic.LoadInt32(maxConcurrent)
+				if current <= prev || atomic.CompareAndSwapInt32(maxConcurrent, prev, current) {
 					break
 				}
 			}
@@ -47,7 +47,7 @@ func mockRedfishFirmwareServer(t *testing.T, responseDelay time.Duration, maxCon
 		case strings.HasSuffix(r.URL.Path, "/UpdateService/FirmwareInventory/BMC"):
 			// Return firmware inventory
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			json.NewEncoder(w).Encode(map[string]interface{}{ //nolint: errcheck
 				"@odata.id":  r.URL.Path,
 				"Id":         "BMC",
 				"Name":       "BMC Firmware",
@@ -64,7 +64,7 @@ func mockRedfishFirmwareServer(t *testing.T, responseDelay time.Duration, maxCon
 
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusAccepted)
-				json.NewEncoder(w).Encode(map[string]interface{}{
+				json.NewEncoder(w).Encode(map[string]interface{}{ //nolint: errcheck
 					"@odata.id": "/redfish/v1/TaskService/Tasks/1",
 					"Id":        "1",
 					"Name":      "Firmware Update Task",
@@ -73,7 +73,7 @@ func mockRedfishFirmwareServer(t *testing.T, responseDelay time.Duration, maxCon
 			} else {
 				// GET UpdateService
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]interface{}{
+				json.NewEncoder(w).Encode(map[string]interface{}{ //nolint: errcheck
 					"@odata.id": "/redfish/v1/UpdateService",
 					"Id":        "UpdateService",
 					"Actions": map[string]interface{}{
@@ -125,7 +125,7 @@ func TestFirmwareParallelExecution(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer os.Remove(tmpFile.Name())
+			defer os.Remove(tmpFile.Name()) //nolint: errcheck
 
 			// Generate BMC entries pointing to mock server
 			host := strings.TrimPrefix(server.URL, "https://")
@@ -137,7 +137,7 @@ func TestFirmwareParallelExecution(t *testing.T) {
 			if _, err := tmpFile.WriteString(inventory); err != nil {
 				t.Fatal(err)
 			}
-			tmpFile.Close()
+			tmpFile.Close() //nolint: errcheck
 
 			// Configure command globals
 			fwFile = tmpFile.Name()
@@ -162,7 +162,7 @@ func TestFirmwareParallelExecution(t *testing.T) {
 			os.Stdout = w
 			os.Stderr = w
 			defer func() {
-				w.Close()
+				w.Close() //nolint: errcheck
 				os.Stdout = oldStdout
 				os.Stderr = oldStderr
 			}()
@@ -175,9 +175,9 @@ func TestFirmwareParallelExecution(t *testing.T) {
 			elapsed := time.Since(start)
 
 			// Read output
-			w.Close()
+			w.Close() //nolint: errcheck
 			var buf bytes.Buffer
-			io.Copy(&buf, r)
+			io.Copy(&buf, r) //nolint: errcheck
 			output := buf.String()
 
 			if err != nil {
@@ -226,7 +226,7 @@ func TestFirmwareDryRunParallel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(tmpFile.Name())
+	defer os.Remove(tmpFile.Name()) //nolint: errcheck
 
 	inventory := `bmcs:
   - xname: x9000c1s0b0
@@ -239,7 +239,7 @@ func TestFirmwareDryRunParallel(t *testing.T) {
 	if _, err := tmpFile.WriteString(inventory); err != nil {
 		t.Fatal(err)
 	}
-	tmpFile.Close()
+	tmpFile.Close() //nolint: errcheck
 
 	// Configure command
 	fwFile = tmpFile.Name()
@@ -257,7 +257,7 @@ func TestFirmwareDryRunParallel(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 	defer func() {
-		w.Close()
+		w.Close() //nolint: errcheck
 		os.Stdout = oldStdout
 	}()
 
@@ -267,9 +267,9 @@ func TestFirmwareDryRunParallel(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	w.Close()
+	w.Close() //nolint: errcheck
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
+	io.Copy(&buf, r) //nolint: errcheck
 	output := buf.String()
 
 	dryRunCount := strings.Count(output, "[dry-run]")
@@ -295,7 +295,7 @@ func TestFirmwareSemaphoreLimiting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(tmpFile.Name())
+	defer os.Remove(tmpFile.Name()) //nolint: errcheck
 
 	host := strings.TrimPrefix(server.URL, "https://")
 	var bmcs []string
@@ -307,7 +307,7 @@ func TestFirmwareSemaphoreLimiting(t *testing.T) {
 	if _, err := tmpFile.WriteString(inventory); err != nil {
 		t.Fatal(err)
 	}
-	tmpFile.Close()
+	tmpFile.Close() //nolint: errcheck
 
 	// Configure command
 	fwFile = tmpFile.Name()
