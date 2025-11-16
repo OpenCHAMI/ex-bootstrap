@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
-.PHONY: help build test lint clean install run docker-build docker-run
+.PHONY: help build test lint clean install run docker-build docker-run release-test
 
 # Variables
 BINARY_NAME=ex-bootstrap
@@ -55,6 +55,10 @@ docker-run: docker-build ## Build and run Docker container
 
 release-snapshot: ## Create a snapshot release with GoReleaser
 	goreleaser release --snapshot --clean
+
+release-test: ## Test release locally using GoReleaser snapshot (requires goreleaser)
+	@command -v goreleaser >/dev/null 2>&1 || { echo "goreleaser is required but not installed. Install with: 'brew install goreleaser' or 'go install github.com/goreleaser/goreleaser@latest'"; exit 1; }
+	@goreleaser release --snapshot --clean
 
 fmt: ## Format code
 	$(GO) fmt ./...

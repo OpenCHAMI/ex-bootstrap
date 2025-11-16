@@ -13,7 +13,8 @@ before:
 
 builds:
   - id: ex-bootstrap
-    main: ./cmd
+    # Point to the package containing `main.go` (project root)
+    main: .
     binary: ex-bootstrap
     env:
       - CGO_ENABLED=0
