@@ -20,13 +20,14 @@ import (
 )
 
 var (
-	discFile       string
-	discBMCSubnet  string
-	discNodeSubnet string
-	discInsecure   bool
-	discTimeout    time.Duration
-	discSSHPubKey  string
-	discDryRun     bool
+	discFile        string
+	discBMCSubnet   string
+	discNodeSubnet  string
+	discNodeStartIP string
+	discInsecure    bool
+	discTimeout     time.Duration
+	discSSHPubKey   string
+	discDryRun      bool
 )
 
 var discoverCmd = &cobra.Command{
@@ -111,7 +112,7 @@ var discoverCmd = &cobra.Command{
 			}
 		}
 
-		nodes, err := discover.UpdateNodes(&doc, discBMCSubnet, discNodeSubnet, user, pass, discInsecure, discTimeout)
+		nodes, err := discover.UpdateNodes(&doc, discBMCSubnet, discNodeSubnet, discNodeStartIP, user, pass, discInsecure, discTimeout)
 		if err != nil {
 			return err
 		}
@@ -133,6 +134,7 @@ func init() {
 	discoverCmd.Flags().StringVarP(&discFile, "file", "f", "", "YAML file containing bmcs[] and nodes[] (nodes will be overwritten)")
 	discoverCmd.Flags().StringVar(&discBMCSubnet, "bmc-subnet", "", "CIDR for BMC IPs, e.g. 192.168.100.0/24 (if not specified, uses --node-subnet)")
 	discoverCmd.Flags().StringVar(&discNodeSubnet, "node-subnet", "", "CIDR for node IPs, e.g. 10.42.0.0/24 (if not specified, uses --bmc-subnet)")
+	discoverCmd.Flags().StringVar(&discNodeStartIP, "node-start-ip", "", "Start node IP allocation at this address (skips all IPs before it)")
 	discoverCmd.Flags().BoolVar(&discInsecure, "insecure", true, "allow insecure TLS to BMCs")
 	discoverCmd.Flags().DurationVar(&discTimeout, "timeout", 12*time.Second, "per-BMC discovery timeout")
 	discoverCmd.Flags().StringVar(&discSSHPubKey, "ssh-pubkey", "", "Path to an SSH public key to set as AuthorizedKeys on each BMC (optional)")

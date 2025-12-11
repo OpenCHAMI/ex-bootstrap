@@ -19,6 +19,7 @@ var (
 	initFile         string
 	initChassis      string
 	initBMCSubnet    string
+	initStartIP      string
 	initNodesPerChas int
 	initNodesPerBMC  int
 	initStartNID     int
@@ -38,7 +39,7 @@ var initBmcsCmd = &cobra.Command{
 		if len(chassis) == 0 {
 			return fmt.Errorf("--chassis must specify at least one entry, e.g. x9000c1=02:23:28:01")
 		}
-		bmcs, err := initbmcs.Generate(chassis, initNodesPerChas, initNodesPerBMC, initStartNID, initBMCSubnet)
+		bmcs, err := initbmcs.Generate(chassis, initNodesPerChas, initNodesPerBMC, initStartNID, initBMCSubnet, initStartIP)
 		if err != nil {
 			return err
 		}
@@ -60,6 +61,7 @@ func init() {
 	initBmcsCmd.Flags().StringVarP(&initFile, "file", "f", "", "Output YAML file containing bmcs[] and nodes[]")
 	initBmcsCmd.Flags().StringVar(&initChassis, "chassis", "x9000c1=02:23:28:01,x9000c3=02:23:28:03", "comma-separated chassis=macprefix list")
 	initBmcsCmd.Flags().StringVar(&initBMCSubnet, "bmc-subnet", "192.168.100.0/24", "BMC subnet in CIDR notation, e.g. 192.168.100.0/24")
+	initBmcsCmd.Flags().StringVar(&initStartIP, "start-ip", "1", "Start IP allocation at this address (skips all IPs before it)")
 	initBmcsCmd.Flags().IntVar(&initNodesPerChas, "nodes-per-chassis", 32, "number of nodes per chassis")
 	initBmcsCmd.Flags().IntVar(&initNodesPerBMC, "nodes-per-bmc", 2, "number of nodes managed by each BMC")
 	initBmcsCmd.Flags().IntVar(&initStartNID, "start-nid", 1, "starting node id (1-based)")

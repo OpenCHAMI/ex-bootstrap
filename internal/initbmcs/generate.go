@@ -49,10 +49,18 @@ func ParseChassisSpec(spec string) map[string]string {
 
 // Generate creates the BMC entries for an initial inventory.
 // bmcSubnet should be in CIDR notation, e.g. "192.168.100.0/24"
-func Generate(chassis map[string]string, nodesPerChassis, nodesPerBMC, startNID int, bmcSubnet string) ([]inventory.Entry, error) {
+// startIP is an optional IP address to start allocation from (skips all IPs before it)
+func Generate(chassis map[string]string, nodesPerChassis, nodesPerBMC, startNID int, bmcSubnet, startIP string) ([]inventory.Entry, error) {
 	alloc, err := netalloc.NewAllocator(bmcSubnet)
 	if err != nil {
 		return nil, fmt.Errorf("bmc subnet init: %w", err)
+	}
+
+	// Reserve all IPs before the start IP if specified
+	if startIP != "" {
+		if err := alloc.ReserveUpTo(startIP); err != nil {
+			return nil, fmt.Errorf("reserve up to start IP: %w", err)
+		}
 	}
 
 	var bmcs []inventory.Entry

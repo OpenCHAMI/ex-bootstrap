@@ -7,6 +7,7 @@ package netalloc
 
 import (
 	"context"
+	"fmt"
 	"net"
 
 	ipam "github.com/metal-stack/go-ipam"
@@ -56,4 +57,54 @@ func (a *Allocator) Contains(ip string) bool {
 		return false
 	}
 	return n.Contains(parsedIP)
+}
+
+// ReserveUpTo reserves all IP addresses from the start of the subnet up to (but not including) the specified IP.
+// This is useful for skipping a range of IPs before allocation begins.
+func (a *Allocator) ReserveUpTo(startIP string) error {
+	if startIP == "" {
+		return nil
+	}
+	if !a.Contains(startIP) {
+		return fmt.Errorf("start IP %s is not in subnet %s", startIP, a.prefix.Cidr)
+	}
+	// Parse the start IP
+	startParsed := net.ParseIP(startIP)
+	if startParsed == nil {
+		return fmt.Errorf("invalid start IP: %s", startIP)
+	}
+
+	// Reserve IPs until we reach the start IP
+	for {
+		addr, err := a.ipm.AcquireIP(context.Background(), a.prefix.Cidr)
+		if err != nil {
+			// No more IPs available or error
+			return nil
+		}
+		allocatedIP := net.ParseIP(addr.IP.String())
+		// Stop when we've reserved everything before startIP
+		if allocatedIP.Equal(startParsed) || isIPGreaterThan(allocatedIP, startParsed) {
+			// Release this IP since we don't want to reserve it
+			_, _ = a.ipm.ReleaseIP(context.Background(), addr)
+			return nil
+		}
+	}
+}
+
+// isIPGreaterThan returns true if ip1 > ip2
+func isIPGreaterThan(ip1, ip2 net.IP) bool {
+	ip1v4 := ip1.To4()
+	ip2v4 := ip2.To4()
+	if ip1v4 == nil || ip2v4 == nil {
+		return false
+	}
+	for i := 0; i < 4; i++ {
+		if ip1v4[i] > ip2v4[i] {
+			return true
+		}
+		if ip1v4[i] < ip2v4[i] {
+			return false
+		}
+	}
+	return false
 }

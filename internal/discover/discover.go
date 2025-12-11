@@ -20,7 +20,8 @@ import (
 
 // UpdateNodes reads existing nodes for reservations, discovers bootable NICs per BMC,
 // allocates IPs, and returns the new nodes list.
-func UpdateNodes(doc *inventory.FileFormat, bmcSubnet, nodeSubnet string, user, pass string, insecure bool, timeout time.Duration) ([]inventory.Entry, error) {
+// nodeStartIP is an optional IP address to start node allocation from (skips all IPs before it)
+func UpdateNodes(doc *inventory.FileFormat, bmcSubnet, nodeSubnet, nodeStartIP string, user, pass string, insecure bool, timeout time.Duration) ([]inventory.Entry, error) {
 	// Create allocator for node IPs
 	nodeAlloc, err := netalloc.NewAllocator(nodeSubnet)
 	if err != nil {
@@ -31,6 +32,13 @@ func UpdateNodes(doc *inventory.FileFormat, bmcSubnet, nodeSubnet string, user, 
 	for _, n := range doc.Nodes {
 		if ip := net.ParseIP(n.IP); ip != nil && nodeAlloc.Contains(n.IP) {
 			nodeAlloc.Reserve(ip.String())
+		}
+	}
+
+	// Reserve all IPs before the start IP if specified
+	if nodeStartIP != "" {
+		if err := nodeAlloc.ReserveUpTo(nodeStartIP); err != nil {
+			return nil, fmt.Errorf("reserve up to node start IP: %w", err)
 		}
 	}
 

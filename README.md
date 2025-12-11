@@ -73,6 +73,22 @@ Show help:
 
 Writes `examples/inventory.yaml` with a `bmcs:` list and `nodes: []`.
 
+**Advanced: Start IP allocation at a specific address**
+
+To reserve the beginning of the subnet (e.g., for gateway, DNS), use `--start-ip`:
+
+```bash
+./ochami_bootstrap init-bmcs --file examples/inventory.yaml \
+  --chassis "x9000c1=02:23:28:01" \
+  --bmc-subnet 192.168.100.0/24 \
+  --start-ip 192.168.100.10 \
+  --nodes-per-chassis 32 \
+  --nodes-per-bmc 2 \
+  --start-nid 1
+```
+
+This skips IPs .1-.9 and begins allocating BMC IPs from .10.
+
 ### 2) Discover bootable NICs and allocate IPs
 
 The discovery flow reads the YAML `--file` (must contain non-empty `bmcs[]`) and writes back the same file with updated `nodes[]`.
@@ -107,6 +123,23 @@ export REDFISH_PASSWORD=secret
   --insecure \
   --ssh-pubkey ~/.ssh/id_rsa.pub   # optional: set AuthorizedKeys on each BMC
 ```
+
+**Advanced: Start node IP allocation at a specific address**
+
+Use `--node-start-ip` to skip the beginning of the node subnet:
+
+```bash
+export REDFISH_USER=admin
+export REDFISH_PASSWORD=secret
+./ochami_bootstrap discover \
+  --file examples/inventory.yaml \
+  --node-subnet 10.42.0.0/24 \
+  --node-start-ip 10.42.0.100 \
+  --timeout 12s \
+  --insecure
+```
+
+This reserves IPs .1-.99 and allocates node IPs starting from .100.
 
 Notes:
 - The program makes simple heuristic decisions about which NIC is bootable (UEFI path hints, DHCP addresses, or a MAC on an enabled interface).
